@@ -1,11 +1,9 @@
-Item,Qty,Est. Unit Price,Est. Total,Purpose,Notes
-Raspberry Pi Pico (or Pico H),1,$3.99,$3.99,Main controller,Pico H has pre-soldered headers - easier for breadboard use
-USB cable (data-capable),1,$5.99,$5.99,Connects Pico to computer,Must be a data cable not charge-only
-Solderless breadboard,1,$5.50,$5.50,Mounts components without soldering,Ask staff for "solderless" or "prototyping" breadboard - not "Perma-Proto"
-Momentary push button,3,$2.00,$6.00,Mute / Vol down / Vol up inputs,Panel-mount or breadboard tactile both work
-SSD1306 OLED display 128x32 I2C,1,$6.50,$6.50,Status display,4-pin I2C version (VCC/GND/SDA/SCL) - not the 7-pin SPI version
-Male-to-male jumper wires (pack),1,$4.00,$4.00,All wiring connections,Need ~10 - buy a pack of 20-40
-Alligator clip test leads (optional),1,$4.00,$4.00,Backup if buttons don't fit breadboard directly,Only needed if using panel-mount buttons with long leads
-Cardboard (for case),1,$0.00,$0.00,Enclosure,Reused material - no cost
-,,,,,
-TOTAL (approx),,,$30-34,,Excludes cardboard and optional alligator clips
+Item,Qty,Actual Price,Subtotal,Purpose,Notes,SKU
+Pico H - Raspberry Pi Pico with Headers,1,$3.99,$3.99,Main controller,RP2040 with pre-soldered headers,412213
+Inland USB 2.0 Type-A to Micro-USB Type-B Cable 3ft,1,$5.99,$5.99,Connects Pico to computer,Data-capable cable,402008
+Inland 6x6mm Micro Momentary Tactile Push Button Assortment,1,$9.99,$9.99,Mute / Vol down / Vol up buttons,Assortment kit - only need 3 of the included buttons,221788
+MCM Electronics Male to Male Jumper Wires 40 Pack,1,$7.99,$7.99,Pico-to-clip and spare wiring,,847178
+Adafruit Industries NeoPixel Stick - 8x WS2812 RGB LED,1,$5.95,$5.95,Volume-level bar display,Powered by 3V3 or 5V; DIN/VCC/GND wiring,493114
+Adafruit Small Alligator Clip to Male Jumper Wire Bundle - 12pc,1,$8.99,$8.99,Replaces breadboard for all wiring,Clip end to button/LED legs; jumper end into Pico GPIO header,758128
+,,,,,,
+TOTAL (actual),,,$42.90,,Excludes tax,

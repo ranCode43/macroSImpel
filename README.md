@@ -1,27 +1,32 @@
-# 3-button media macropad with OLED status display
+# USB macropad — mute / volume buttons + RGB volume bar
 
-A USB macropad built on a Raspberry Pi Pico running CircuitPython, with a
-small I2C OLED screen showing the last button pressed and a locally-tracked
-volume level. No firmware compiling — just Python files on a USB drive.
-
-Buttons: **Mute / Volume down / Volume up**, with live feedback on screen.
+A USB macropad built on a Raspberry Pi Pico running CircuitPython: three
+buttons (mute, volume down, volume up) and an 8-pixel RGB LED strip that
+acts as a live volume-level bar. No firmware compiling — just Python files
+on a USB drive.
 
 ## Parts
 
 | Part | Notes |
 |---|---|
 | Raspberry Pi Pico (or Pico H) | Any RP2040 Pico works |
-| Solderless breadboard | Not a "Perma-Proto" board — needs to be push-in |
-| 3x momentary push buttons | Panel-mount or breadboard tactile, either works |
-| SSD1306 OLED, 128x32, I2C | The 4-pin (VCC/GND/SDA/SCL) version, not SPI |
-| Male-to-male jumper wires | ~10 needed (2 per button + 4 for the OLED) |
+| 3x momentary push buttons | Mute / Volume down / Volume up |
+| 1x NeoPixel Stick, 8x WS2812 | Used as a volume-level bar |
+| Male-to-male jumper wires | ~4 needed (Pico power/data + spares) |
+| Alligator-clip-to-male-jumper leads | ~7 needed — used instead of a breadboard, see wiring below |
 | USB cable (data-capable) | Micro-USB or USB-C depending on your Pico |
 
-## 1. Wiring
+No breadboard required — every connection below is direct point-to-point
+wiring using alligator clips instead of a shared rail.
 
-**Buttons** — each connects one leg to a GPIO pin, the other leg to GND
-(shared ground rail). Internal pull-ups handle debouncing logic, no
-resistors needed.
+## 1. Wiring (no breadboard — alligator clips)
+
+Every part connects straight to the Pico with an alligator-clip-to-male-jumper
+lead: clip end onto the component's leg/pad, male jumper end straight into
+the Pico's GPIO pin header.
+
+**Buttons** — each has 2 legs: one clips to a GPIO pin, the other clips to
+GND. Internal pull-ups handle the logic, no resistors needed.
 
 | Button | Pico pin | Function |
 |---|---|---|
@@ -29,14 +34,22 @@ resistors needed.
 | 2 | GP3 | Volume down |
 | 3 | GP4 | Volume up |
 
-**OLED (I2C)** — 4 wires:
+**RGB LED bar (NeoPixel Stick, 8x WS2812)** — 3 wires:
 
-| OLED pin | Pico pin |
+| Stick pin | Pico pin |
 |---|---|
-| VCC | 3V3 |
+| DIN (data) | GP0 |
+| VCC | 3V3 or 5V |
 | GND | GND |
-| SDA | GP0 |
-| SCL | GP1 |
+
+The 8 LEDs work as a volume-level bar: more pixels light up (green → amber
+→ red) as volume goes up, and all 8 turn solid red when muted.
+
+**Grounding tip:** you'll have 4 separate GND connections (3 buttons + the
+NeoPixel stick) but only one GND pin on the Pico. Clip all 4 GND leads onto
+one shared alligator clip, then run a single jumper from that clip to the
+Pico's GND pin — effectively building your own tiny ground rail without a
+breadboard.
 
 ## 2. Flash CircuitPython onto the Pico
 
@@ -53,15 +66,13 @@ CircuitPython version) from circuitpython.org/libraries, unzip it, and copy
 these into a `lib` folder on `CIRCUITPY`:
 
 - `adafruit_hid/` (folder)
-- `adafruit_displayio_ssd1306.mpy`
-- `adafruit_display_text/` (folder)
+- `neopixel.mpy`
 
 ```
 CIRCUITPY/
   lib/
     adafruit_hid/
-    adafruit_displayio_ssd1306.mpy
-    adafruit_display_text/
+    neopixel.mpy
   code.py
 ```
 
@@ -70,27 +81,23 @@ CIRCUITPY/
 Copy `code.py` from this repo onto the root of `CIRCUITPY`, overwriting the
 existing one.
 
-Save and it auto-runs. Press a button → your computer's volume responds
-*and* the OLED shows which button you pressed plus a running local volume
-percentage (0-100, ±5 per press). Mute toggles a "MUTED" display.
-
-Note: the on-screen volume number is cosmetic — CircuitPython can send
-volume-up/down/mute commands over USB HID, but it has no way to read back
-your computer's actual system volume, so the screen tracks its own local
-count starting at 50.
+Save and it auto-runs:
+- Press mute -> mute toggles, bar goes solid red / restores to volume level.
+- Press volume down/up -> fewer/more pixels light up (green -> amber -> red
+  as it climbs).
 
 ## Changing behavior
 
-- Button functions: edit `BUTTON_MAP` at the top of `code.py`.
-- Display layout/text: edit the `label.Label(...)` lines.
-- OLED not showing anything: double check the I2C address — most SSD1306
-  boards are `0x3C`, some are `0x3D`. Change `device_address=0x3C` in
-  `code.py` if needed.
+- Button pins or colors: edit the constants near the top of `code.py`.
+- LED too bright/dim: change `brightness=0.3` in the `neopixel.NeoPixel(...)`
+  line (0.0-1.0).
 
 ## Case
 
-Cardboard works for v1 — cut holes for the 3 buttons and a window for the
-OLED. Hot glue or tape the Pico/breadboard/OLED inside.
+Cardboard works for v1 - cut holes for the 3 buttons and a slot for the
+8-pixel LED strip. Hot glue or tape the Pico down inside the case first so
+the alligator-clip leads have something stable to connect to, then wire up
+the buttons and LED strip.
 
 ## Repo structure
 

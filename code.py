@@ -1,28 +1,23 @@
 """
-3-button USB media macropad with OLED status display
-Raspberry Pi Pico + CircuitPython + adafruit_hid + adafruit_displayio_ssd1306
+USB media macropad: mute / volume down / volume up buttons + RGB volume bar
+Raspberry Pi Pico + CircuitPython + adafruit_hid + neopixel
 
 Buttons (each wired to GPIO + shared GND, using internal pull-ups):
   GP2 -> Mute
   GP3 -> Volume down
   GP4 -> Volume up
 
-OLED (I2C):
-  GP0 -> SDA
-  GP1 -> SCL
-  3V3 -> VCC
+RGB LED strip (NeoPixel Stick, 8x WS2812):
+  GP0 -> DIN
+  5V or 3V3 -> VCC (5V recommended if your Pico board breaks it out; 3V3 also works, just dimmer)
   GND -> GND
 """
 
 import time
 import board
-import busio
 import digitalio
-import displayio
-import terminalio
+import neopixel
 import usb_hid
-from adafruit_display_text import label
-import adafruit_displayio_ssd1306
 from adafruit_hid.consumer_control import ConsumerControl
 from adafruit_hid.consumer_control_code import ConsumerControlCode
 
@@ -45,40 +40,51 @@ for pin, (name, code) in BUTTON_MAP.items():
 
 DEBOUNCE_SEC = 0.03
 
-# ---------- Display setup ----------
+# ---------- RGB LED bar (8 pixels) ----------
 
-displayio.release_displays()
-i2c = busio.I2C(board.GP1, board.GP0)  # SCL, SDA
-display_bus = displayio.I2CDisplay(i2c, device_address=0x3C)
-display = adafruit_displayio_ssd1306.SSD1306(display_bus, width=128, height=32)
+NUM_PIXELS = 8
+pixels = neopixel.NeoPixel(board.GP0, NUM_PIXELS, brightness=0.3, auto_write=False)
 
-splash = displayio.Group()
-display.root_group = splash
+COLOR_OFF = (0, 0, 0)
+COLOR_MUTE = (60, 0, 0)  # solid red across the whole bar
 
-status_label = label.Label(terminalio.FONT, text="Macropad ready", x=4, y=6)
-volume_label = label.Label(terminalio.FONT, text="Vol: 50", x=4, y=20)
-splash.append(status_label)
-splash.append(volume_label)
+# Volume bar color ramps from green (low) -> amber (mid) -> red (high),
+# so the bar itself gives a rough "how loud" read at a glance.
+def bar_color_for_index(i):
+    fraction = i / (NUM_PIXELS - 1)  # 0.0 .. 1.0
+    if fraction < 0.5:
+        t = fraction / 0.5
+        r = int(20 + t * 40)
+        g = 60
+        b = 0
+    else:
+        t = (fraction - 0.5) / 0.5
+        r = 60
+        g = int(60 - t * 60)
+        b = 0
+    return (r, g, b)
 
-# Purely local, cosmetic volume tracker for the screen -- CircuitPython can't
-# read the real OS volume back over USB HID, so this just mirrors button
-# presses so the screen has something meaningful to show.
-volume = 50
+# Purely local, cosmetic volume tracker for the LED bar -- CircuitPython
+# can't read the real OS volume back over USB HID, so this mirrors button
+# presses so the bar has something meaningful to show, starting at midpoint.
+volume = 50  # 0-100
 muted = False
 
-def refresh_display():
-    volume_label.text = "MUTED" if muted else "Vol: {}".format(volume)
+def refresh_bar():
+    if muted:
+        pixels.fill(COLOR_MUTE)
+        pixels.show()
+        return
+    lit = round((volume / 100) * NUM_PIXELS)
+    for i in range(NUM_PIXELS):
+        pixels[i] = bar_color_for_index(i) if i < lit else COLOR_OFF
+    pixels.show()
 
-refresh_display()
-
-LAST_ACTION_DISPLAY_SEC = 1.5
-last_action_time = 0
+refresh_bar()
 
 # ---------- Main loop ----------
 
 while True:
-    now = time.monotonic()
-
     for pin, b in buttons.items():
         pressed = not b["io"].value
         if pressed and not b["was_pressed"]:
@@ -93,16 +99,9 @@ while True:
                 elif b["name"] == "Vol up":
                     volume = min(100, volume + 5)
 
-            status_label.text = b["name"]
-            refresh_display()
-            last_action_time = now
-
+            refresh_bar()
             time.sleep(DEBOUNCE_SEC)
 
         b["was_pressed"] = pressed
-
-    # Clear the "last action" text back to idle after a short delay
-    if status_label.text != "Macropad ready" and (now - last_action_time) > LAST_ACTION_DISPLAY_SEC:
-        status_label.text = "Macropad ready"
 
     time.sleep(0.01)
